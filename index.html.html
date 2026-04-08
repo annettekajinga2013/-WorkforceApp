@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cybastion · Workforce</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0d;--bg2:#0f1117;--bg3:#161b24;--bg4:#1c2230;--bg5:#222840;
+  --border:#ffffff0c;--border2:#ffffff16;--border3:#ffffff22;
+  --accent:#00c6a2;--accent2:#00a888;
+  --blue:#3b82f6;--warn:#f59e0b;--danger:#ef4444;--purple:#a855f7;
+  --text:#e8eaf0;--text2:#9aa3b8;--text3:#556070;
+  --radius:10px;--radius2:14px;--radius3:18px;
+  --sidebar:224px;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;--display:'Syne',sans-serif;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+body{display:flex}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:var(--font)}
+input,select,textarea{font-family:var(--font)}
+
+/* ── LOGIN SCREEN ─────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0}
+.login-card{width:420px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius3);padding:40px;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.login-icon svg{width:22px;height:22px;fill:var(--bg)}
+.login-title{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text)}
+.login-sub{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.login-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:block}
+.login-select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:12px 14px;font-size:14px;margin-bottom:16px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23556070'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.login-pin-label{font-size:12px;color:var(--text3);margin-bottom:12px;text-align:center}
+.login-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.login-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border3);background:transparent;transition:all .15s}
+.login-dot.filled{background:var(--accent);border-color:var(--accent)}
+.login-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.login-nk{padding:15px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:18px;font-weight:500;transition:all .12s}
+.login-nk:hover{background:var(--bg4);border-color:var(--border2)}
+.login-nk:active{transform:scale(.95)}
+.login-nk.spec{font-size:12px;color:var(--text3)}
+.login-btn{width:100%;padding:13px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);font-size:15px;font-weight:600;font-family:var(--display);transition:all .15s}
+.login-btn:hover{filter:brightness(1.1)}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
+  color:var(--text);font-family:var(--font);font-size:14px;padding:12px 14px;margin-bottom:8px;
+  transition:border .15s;outline:none}
+.login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #00c6a212}
+.login-input.valid{border-color:var(--accent)}
+.login-input.invalid{border-color:var(--danger)}
+.login-error{color:var(--danger);font-size:12px;text-align:center;margin-top:8px;min-height:18px}
+.login-hint{margin-top:20px;background:var(--bg3);border-radius:var(--radius);padding:12px;font-size:11px;color:var(--text3);line-height:1.7}
+.login-hint b{color:var(--text2)}
+
+/* ── LAYOUT ────────────────────────────────────────── */
+#app{display:none;width:100%;min-height:100vh}
+.sidebar{width:var(--sidebar);min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:50;overflow-y:auto}
+.main{margin-left:var(--sidebar);flex:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── SIDEBAR ───────────────────────────────────────── */
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:19px;height:19px;fill:var(--bg)}
+.logo-name{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text)}
+.logo-tagline{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:1px}
+
+.sidebar-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
+.sidebar-user:hover{background:var(--bg3)}
+.user-info .uname{font-size:13px;font-weight:500;color:var(--text)}
+.user-info .urole{font-size:11px;color:var(--text3)}
+
+.nav-section{padding:10px 10px 2px}
+.nav-section-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:0 6px;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;border:1px solid transparent;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg4);color:var(--accent);border-color:var(--border2)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-badge{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+.sidebar-footer{margin-top:auto;padding:14px;border-top:1px solid var(--border)}
+.logout-btn{width:100%;padding:8px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text3);font-size:12px;transition:all .15s}
+.logout-btn:hover{border-color:var(--border3);color:var(--text2)}
+
+/* ── TOPBAR ────────────────────────────────────────── */
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:40}
+.page-title{font-family:var(--display);font-size:15px;font-weight:600;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-clock{font-family:var(--mono);font-size:13px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:5px 10px;border-radius:7px}
+.icon-btn{width:34px;height:34px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s}
+.icon-btn:hover{border-color:var(--border2)}
+.icon-btn svg{width:16px;height:16px;stroke:var(--text2);fill:none;stroke-width:1.8}
+#notif-badge{position:absolute;top:4px;right:4px;width:14px;height:14px;background:var(--danger);border-radius:50%;font-size:9px;font-weight:700;color:#fff;display:none;align-items:center;justify-content:center;border:2px solid var(--bg2)}
+
+/* ── CONTENT ───────────────────────────────────────── */
+.content{padding:24px;flex:1;overflow-y:auto}
+.screen{display:none}
+.screen.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── COMPONENTS ────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px}
+.card-sm{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-val{font-family:var(--display);font-size:26px;font-weight:700;color:var(--text);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+
+.tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--radius);padding:3px;width:fit-content;margin-bottom:18px}
+.tab{padding:6px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text3);transition:all .15s;border:none;background:none;font-family:var(--font);position:relative}
+.tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2)}
+.tab-badge{position:absolute;top:2px;right:4px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:14px;height:14px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;padding:0 3px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl td.name,.name{color:var(--text);font-weight:500}
+.empty-row{text-align:center;color:var(--text3);font-size:13px;padding:32px!important}
+.empty{text-align:center;color:var(--text3);font-size:13px;padding:40px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:var(--font);line-height:1}
+.btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--border3)}
+.btn-danger{background:#ef444415;color:var(--danger);border-color:#ef444430}
+.btn-warn{background:#f59e0b15;color:var(--warn);border-color:#f59e0b30}
+.btn-success{background:#00c6a215;color:var(--accent);border-color:#00c6a230}
+.btn-blue{background:#3b82f615;color:var(--blue);border-color:#3b82f630}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-approved{background:#00c6a218;color:var(--accent);border:1px solid #00c6a230}
+.badge-pending,.badge-warn{background:#f59e0b18;color:var(--warn);border:1px solid #f59e0b30}
+.badge-denied{background:#ef444418;color:var(--danger);border:1px solid #ef444430}
+.badge-mgr,.badge-manager{background:#3b82f618;color:var(--blue);border:1px solid #3b82f630}
+.badge-director{background:#a855f718;color:var(--purple);border:1px solid #a855f730}
+.badge-hr{background:#f59e0b18;color:var(--warn);border:1px solid #f59e0b30}
+.badge-in{background:#00c6a212;color:var(--accent);border:1px solid #00c6a220}
+
+/* Avatar */
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;flex-shrink:0}
+.avatar-sm{width:28px;height:28px;font-size:11px}
+.avatar-md{width:36px;height:36px;font-size:13px}
+.avatar-lg{width:48px;height:48px;font-size:16px}
+.avatar-xl{width:72px;height:72px;font-size:24px}
+
+/* Progress */
+.prog-wrap{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:6px}
+.prog-bar{height:100%;border-radius:99px;background:var(--accent);transition:width .4s ease}
+.prog-bar.warn{background:var(--warn)}
+.prog-bar.danger{background:var(--danger)}
+
+/* name-cell */
+.name-cell{display:flex;align-items:center;gap:10px}
+.name-cell .sub{font-size:11px;color:var(--text3)}
+
+/* Chip */
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--text2)}
+.half-tag{font-size:10px;background:var(--bg4);border-radius:4px;padding:1px 5px;color:var(--text3)}
+
+/* text colors */
+.text-accent{color:var(--accent)}
+.text-warn{color:var(--warn)}
+.text-danger,.text-red{color:var(--danger)}
+.text-muted{color:var(--text3)}
+.mono{font-family:var(--mono);font-size:12px}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:500}
+.form-input,.form-select,.form-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:10px 12px;width:100%;transition:border .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #00c6a212}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23556070'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-textarea{resize:vertical;min-height:72px}
+
+/* Toast */
+.toast-wrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px;min-width:240px;opacity:0;transform:translateX(20px);transition:all .25s;pointer-events:auto}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast-success{border-color:#00c6a230}
+.toast-error{border-color:#ef444430}
+.toast-warn{border-color:#f59e0b30}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toast-success .toast-dot{background:var(--accent)}
+.toast-error .toast-dot{background:var(--danger)}
+.toast-warn .toast-dot{background:var(--warn)}
+
+/* Modal */
+#modal-overlay{position:fixed;inset:0;background:#00000080;z-index:200;display:none;align-items:center;justify-content:center}
+#modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius3);padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;animation:fadeIn .2s ease;display:none}
+.modal.open{display:block}
+.modal-title{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* Reminder */
+.reminder{display:flex;align-items:center;gap:14px;background:#f59e0b0d;border:1px solid #f59e0b25;border-radius:var(--radius);padding:14px 16px;margin-bottom:20px}
+.reminder-icon{font-size:20px;flex-shrink:0}
+.reminder-text{font-size:13px;color:var(--text2);flex:1}
+.reminder-text b{color:var(--warn)}
+
+/* Week Grid */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px}
+.day-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 6px;text-align:center}
+.day-card.today{border-color:var(--accent);background:#00c6a20a}
+.day-card.weekend{opacity:.5}
+.day-name{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.day-date{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px}
+.day-time{font-size:10px;font-family:var(--mono)}
+.day-time.in{color:var(--accent)}
+.day-time.out{color:var(--text3)}
+.day-hours{font-size:12px;font-weight:600;color:var(--text);margin-top:4px}
+.day-absent{font-size:11px;color:var(--text3)}
+
+/* Kiosk */
+.kiosk-wrap{max-width:360px;margin:0 auto;text-align:center}
+.kiosk-clock{font-family:var(--mono);font-size:52px;font-weight:400;color:var(--text);letter-spacing:-2px;margin:16px 0 4px;font-variant-numeric:tabular-nums}
+.kiosk-date{font-size:12px;color:var(--text3);margin-bottom:20px}
+.network-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:99px;font-size:12px;font-weight:500;margin-bottom:18px}
+.net-ok{background:#00c6a215;color:var(--accent);border:1px solid #00c6a230}
+.net-warn{background:#ef444415;color:var(--danger);border:1px solid #ef444430}
+.ndot{width:7px;height:7px;border-radius:50%;animation:pulse 2s infinite}
+.ndot-ok{background:var(--accent)}
+.ndot-warn{background:var(--danger);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.kiosk-pin-label{font-size:12px;color:var(--text3);margin-bottom:12px}
+.kiosk-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.pdot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border3);background:transparent;transition:all .12s}
+.pdot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px #00c6a250}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.nk{padding:17px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:20px;font-weight:500;transition:all .12s;font-family:var(--display)}
+.nk:hover{background:var(--bg4);border-color:var(--border2)}
+.nk:active{transform:scale(.95)}
+.nk.spec{font-size:12px;color:var(--text3)}
+.clock-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ci-btn{padding:15px;border-radius:var(--radius);font-size:15px;font-weight:600;border:none;transition:all .15s;font-family:var(--display)}
+.ci-btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-cin{background:var(--accent);color:var(--bg)}
+.btn-cin:hover:not(:disabled){filter:brightness(1.1)}
+.btn-cout{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+.btn-cout:hover:not(:disabled){background:var(--bg4)}
+#photo-flash{position:fixed;inset:0;background:#fff;pointer-events:none;opacity:0;z-index:99;transition:opacity .1s}
+#photo-flash.flash{opacity:.35}
+
+/* Leave */
+.balance-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.leave-layout{display:grid;grid-template-columns:1fr 260px;gap:16px}
+.breakdown-row{margin-bottom:10px}
+.breakdown-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px}
+.accrual-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.accrual-row:last-child{border:none}
+.accrual-row.probation{opacity:.5}
+.accrual-row .text-accent{color:var(--accent)}
+.accrual-row .text-muted{color:var(--text3)}
+
+/* Approvals */
+.approval-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:18px;margin-bottom:12px}
+.approval-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.approval-card-who{display:flex;align-items:center;gap:12px}
+.approval-card-who .name{font-size:14px;font-weight:600;color:var(--text)}
+.approval-card-who .sub{font-size:12px;color:var(--text3);margin-top:2px}
+.approval-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text3);margin-bottom:14px}
+.approval-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Flow compact */
+.flow-compact{display:flex;align-items:center;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.fc-step{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:500}
+.fc-step.done{background:#00c6a218;color:var(--accent);border:1px solid #00c6a230}
+.fc-step.active{background:#3b82f618;color:var(--blue);border:1px solid #3b82f630}
+.fc-step.pending{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.fc-arrow{color:var(--text3);font-size:12px}
+
+/* Team */
+.team-layout{}
+
+/* Notifications */
+.notif-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:hover{background:var(--bg3)}
+.notif-item.unread{background:var(--bg3)}
+.notif-item.unread .notif-msg{color:var(--text);font-weight:500}
+.notif-icon{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.notif-leave_request{background:var(--blue)}
+.notif-timesheet{background:var(--accent)}
+.notif-reminder{background:var(--warn)}
+.notif-msg{font-size:13px;color:var(--text2)}
+.notif-time{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* Profile */
+.profile-hero{display:flex;align-items:center;gap:20px;padding:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:16px}
+.profile-info h2{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text)}
+.profile-info p{font-size:13px;color:var(--text3);margin-top:4px}
+.profile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.profile-details{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+.detail-row{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.detail-row:last-child{border:none}
+.detail-row span:first-child{color:var(--text3)}
+.detail-row span:last-child{color:var(--text);font-weight:500}
+
+/* Office pills & tags */
+.office-pill{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all .15s}
+.office-pill:hover{border-color:var(--border3);color:var(--text)}
+.office-pill.active{background:var(--bg4);color:var(--accent);border-color:#00c6a230}
+.office-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+
+/* Users */
+.row-inactive{opacity:.5}
+
+/* Confirm modal */
+#confirm-modal{max-width:360px;padding:24px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <div><div class="login-title">Cybastion</div><div class="login-sub">Workforce Platform</div></div>
+    </div>
+    <label class="login-label">Select your account</label>
+    
+    <div class="login-pin-label">Enter your PIN</div>
+    <div class="login-dots">
+      <div class="login-dot" id="ld0"></div>
+      <div class="login-dot" id="ld1"></div>
+      <div class="login-dot" id="ld2"></div>
+      <div class="login-dot" id="ld3"></div>
+    </div>
+    <div class="login-numpad">
+      <button class="login-nk" onclick="lp('1')">1</button>
+      <button class="login-nk" onclick="lp('2')">2</button>
+      <button class="login-nk" onclick="lp('3')">3</button>
+      <button class="login-nk" onclick="lp('4')">4</button>
+      <button class="login-nk" onclick="lp('5')">5</button>
+      <button class="login-nk" onclick="lp('6')">6</button>
+      <button class="login-nk" onclick="lp('7')">7</button>
+      <button class="login-nk" onclick="lp('8')">8</button>
+      <button class="login-nk" onclick="lp('9')">9</button>
+      <button class="login-nk spec" onclick="lpin=lpin.slice(0,-1);updateLoginDots()">⌫</button>
+      <button class="login-nk" onclick="lp('0')">0</button>
+      <button class="login-nk spec" onclick="lpin='';updateLoginDots()">Clear</button>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-hint">
+      <b>Test PINs:</b> Kofi: 1234 · Fatoumata: 3456 · Amara: 5678 · Yemi: 9012 · Director: 0000
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Kiosk</div>
+      <div class="topbar-right">
+        <div class="topbar-clock" id="topbar-clock">--:--:--</div>
+        <div class="icon-btn" onclick="showScreen('notifications')" title="Notifications">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div id="notif-badge"></div>
+        </div>
+        <div class="icon-btn" onclick="showScreen('profile')" title="Profile">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div id="modal-overlay" onclick="closeAllModals()">
+  <!-- Leave Modal -->
+  <div class="modal" id="leave-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">New Leave Request</div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text3);margin-bottom:18px" id="lv-flow-text"></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Leave Type</label>
+        <select class="form-select" id="lv-type">
+          <option>Vacation</option><option>Sick Leave</option><option>Personal</option>
+          <option>Maternity / Paternity</option><option>Compassionate</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Half Day?</label>
+        <select class="form-select" id="lv-halfday" onchange="calcLeaveDays()">
+          <option value="">Full day(s)</option>
+          <option value="morning">Morning only (8AM–12PM)</option>
+          <option value="afternoon">Afternoon only (12PM–5:30PM)</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">From Date</label>
+        <input type="date" class="form-input" id="lv-from" onchange="calcLeaveDays()">
+      </div>
+      <div class="form-group"><label class="form-label">To Date</label>
+        <input type="date" class="form-input" id="lv-to" onchange="calcLeaveDays()">
+      </div>
+      <div class="form-group full"><label class="form-label">Duration <span id="lv-days-calc" style="color:var(--accent);margin-left:6px"></span></label></div>
+      <div class="form-group full"><label class="form-label">Notes (optional)</label>
+        <textarea class="form-textarea" id="lv-note" placeholder="Reason or details for your approver..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="modal('leave-modal',false)">Cancel</button>
+      <button class="btn btn-primary" onclick="submitLeave()">Submit Request</button>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div class="modal" id="add-user-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Add New Employee</div>
+    <form id="add-user-form" onsubmit="return false">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Full Name</label><input class="form-input" id="au-name" placeholder="e.g. Marie Dupont"></div>
+      <div class="form-group"><label class="form-label">Work Email</label><input type="email" class="form-input" id="au-email" placeholder="marie@cybastion.com"></div>
+      <div class="form-group"><label class="form-label">Job Title</label><input class="form-input" id="au-title" placeholder="e.g. Nurse"></div>
+      <div class="form-group"><label class="form-label">Department</label><input class="form-input" id="au-dept" placeholder="e.g. Clinical"></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-select" id="au-role">
+          <option value="employee">Employee</option>
+          <option value="manager">Manager</option>
+          <option value="hr">HR Admin</option>
+          <option value="director">Director</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Supervisor</label>
+        <select class="form-select" id="au-sup"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-input" id="au-start"></div>
+      <div class="form-group"><label class="form-label">Office Location</label>
+        <select class="form-select" id="au-office">
+          <option value="cotonou">Cotonou, Benin Republic</option>
+          <option value="virginia">Virginia, USA</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Initial PIN (4 digits)</label><input type="password" class="form-input" id="au-pin" placeholder="••••" maxlength="4"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">An activation link will be emailed so the employee can set their own PIN.</div>
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="modal('add-user-modal',false)">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddUser()">Add Employee</button>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal" id="edit-user-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Edit Employee</div>
+    <input type="hidden" id="eu-id">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Full Name</label><input class="form-input" id="eu-name"></div>
+      <div class="form-group"><label class="form-label">Work Email</label><input class="form-input" id="eu-email"></div>
+      <div class="form-group"><label class="form-label">Job Title</label><input class="form-input" id="eu-title"></div>
+      <div class="form-group"><label class="form-label">Department</label><input class="form-input" id="eu-dept"></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-select" id="eu-role">
+          <option value="employee">Employee</option>
+          <option value="manager">Manager</option>
+          <option value="hr">HR Admin</option>
+          <option value="director">Director</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Office Location</label>
+        <select class="form-select" id="eu-office">
+          <option value="cotonou">Cotonou, Benin Republic</option>
+          <option value="virginia">Virginia, USA</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Supervisor</label><select class="form-select" id="eu-sup"></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="modal('edit-user-modal',false)">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditUser()">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal" id="confirm-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Confirm Action</div>
+    <p id="confirm-msg" style="font-size:14px;color:var(--text2);line-height:1.6"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-yes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+<div id="photo-flash"></div>
+<script>
+// ═══════════════════════════════════════════════════════════
+// CYBASTION WORKFORCE — DATA & STATE
+// ═══════════════════════════════════════════════════════════
+
+const TODAY = new Date();
+const YEAR  = TODAY.getFullYear();
+const MONTH = TODAY.getMonth();
+
+// ── Offices ────────────────────────────────────────────────
+const OFFICES = [
+  { id:'cotonou',  label:'Cotonou, Benin',    tz:'Africa/Porto-Novo', ip:'192.168.1.' },
+  { id:'virginia', label:'Virginia, USA',      tz:'America/New_York',  ip:'10.0.0.'    },
+  { id:'abidjan',  label:'Abidjan, Côte d\'Ivoire', tz:'Africa/Abidjan', ip:'172.16.' },
+  { id:'global',   label:'Global — Travelling',         tz:'UTC',            ip:'' },
+];
+
+// ── Role definitions ───────────────────────────────────────
+// super_admin > director > manager > hr > employee
+const ROLE_LEVEL = { ceo:6, super_admin:5, director:4, manager:3, hr:2, employee:1 };
+
+// ── Users ──────────────────────────────────────────────────
+const USERS = [
+  // CEO
+  { id:'u15', name:'Dr. Thierry Wandji',        initials:'TW', role:'ceo', title:'President & CEO',
+    pin:'0000', mustChangePIN:true, supervisor:null, dept:'Executive', office:'global',
+    email:'twandji@cybastiontech.com', startDate:'2018-01-01', active:true, phone:'' },
+
+    // Super Admin
+  { id:'u1',  name:'Annette Kajinga',          initials:'AK', role:'super_admin', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u2', dept:'Executive', office:'cotonou',
+    email:'akajinga@cybastiontech.com',  startDate:'2023-01-01', active:true, phone:'' },
+
+  // Directors
+  { id:'u2',  name:'Mohamed Dembele',           initials:'MD', role:'director', title:'Managing Partner',
+    pin:'0000', mustChangePIN:true, supervisor:'u15', dept:'Executive', office:'cotonou',
+    email:'mdembele@cybastiontech.com',  startDate:'2020-01-01', active:true, phone:'' },
+
+  { id:'u3',  name:'Claudia Ayizannon Lessan',  initials:'CA', role:'director', title:'Managing Director Benin Office',
+    pin:'0000', mustChangePIN:true, supervisor:'u2', dept:'Executive', office:'cotonou',
+    email:'cayizannon@cybastiontech.com', startDate:'2021-01-01', active:true, phone:'' },
+
+  { id:'u4',  name:'Fabrice Klouyo',            initials:'FK', role:'director', title:'Technical Director',
+    pin:'0000', mustChangePIN:true, supervisor:'u2', dept:'Technology', office:'cotonou',
+    email:'fklouyo@cybastiontech.com',   startDate:'2021-06-01', active:true, phone:'' },
+
+  { id:'u5',  name:'Armand Tchokokam',          initials:'AT', role:'director', title:'EVP & Global CFO',
+    pin:'0000', mustChangePIN:true, supervisor:'u15', dept:'Finance', office:'abidjan',
+    email:'atchokokam@cybastiontech.com', startDate:'2019-01-01', active:true, phone:'' },
+
+  // Manager
+  { id:'u6',  name:'Dr. Tsion Mengistu Yimer',  initials:'TY', role:'manager', title:'Manager',
+    pin:'0000', mustChangePIN:true, supervisor:'u2', dept:'Security Operations', office:'cotonou',
+    email:'tyimer@cybastiontech.com',    startDate:'2022-03-01', active:true, phone:'' },
+
+  // HR
+  { id:'u7',  name:'Hermine AZIAVE',            initials:'HA', role:'hr', title:'HR',
+    pin:'0000', mustChangePIN:true, supervisor:'u3', dept:'Human Resources', office:'cotonou',
+    email:'haziave@cybastiontech.com',   startDate:'2022-06-01', active:true, phone:'' },
+
+  // Employees
+  { id:'u8',  name:'Jeudida Kpati',             initials:'JK', role:'employee', title:'Cybersecurity Analyst',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'jkpati@cybastiontech.com',    startDate:'2023-04-01', active:true, phone:'' },
+
+  { id:'u9',  name:'Delano Tollo',              initials:'DT', role:'employee', title:'Senior Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'dtollo@cybastiontech.com',    startDate:'2022-09-01', active:true, phone:'' },
+
+  { id:'u10', name:'Cedric LISSANON',           initials:'CL', role:'employee', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'clissanon@cybastiontech.com', startDate:'2023-02-01', active:true, phone:'' },
+
+  { id:'u11', name:'Michkath Olowolagba',        initials:'MO', role:'employee', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'molowolagba@cybastiontech.com',startDate:'2023-05-01', active:true, phone:'' },
+
+  { id:'u12', name:'Yves BINAZON',              initials:'YB', role:'employee', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'ybinazon@cybastiontech.com',  startDate:'2023-07-01', active:true, phone:'' },
+
+  { id:'u13', name:'Marc KAKESSA',              initials:'MK', role:'employee', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'mkakessa@cybastiontech.com',  startDate:'2023-08-01', active:true, phone:'' },
+
+  { id:'u14', name:'Sadoc Adonon',              initials:'SA', role:'employee', title:'Cybersecurity Consultant',
+    pin:'0000', mustChangePIN:true, supervisor:'u6', dept:'Security Operations', office:'cotonou',
+    email:'sadonon@cybastiontech.com',   startDate:'2024-01-01', active:true, phone:'' },
+];
+
+// ── Policy ─────────────────────────────────────────────────
+const POLICY = {
+  workStart:'08:00', workEnd:'17:30',
+  lateAfter:'08:15', earlyBefore:'17:15',
+  absentAfter:'09:30',
+  accrualPerMonth:2,
+  probationMonths:3,
+  maxConsecutiveDays:15,
+  maxTeamOnLeave:2,
+  kioskTimeout:180,
+  pinLockAttempts:3,
+  benin_holidays_2026:[
+    '2026-01-01','2026-01-10','2026-04-05','2026-04-06',
+    '2026-05-01','2026-05-14','2026-06-25','2026-08-01',
+    '2026-08-15','2026-11-01','2026-11-15','2026-12-25'
+  ]
+};
+
+// ── Empty initial data (no test records) ───────────────────
+const CLOCK_EVENTS   = [];
+const TIMESHEETS     = [];
+const LEAVE_REQUESTS = [];
+const AUDIT_LOG      = [
+  { id:'al1', actor:'System', action:'System initialised',
+    target:'Cybastion Workforce v1.0 — Cotonou Pilot',
+    ts:new Date().toISOString().replace('T',' ').slice(0,16), ip:'system' }
+];
+const NOTIFICATIONS  = [];
+
+// ── App State ──────────────────────────────────────────────
+const STATE = {
+  currentUser:    null,
+  kioskPin:       '',
+  kioskAttempts:  {},
+  notifications:  [...NOTIFICATIONS],
+  clockEvents:    [...CLOCK_EVENTS],
+  timesheets:     [...TIMESHEETS],
+  leaveRequests:  [...LEAVE_REQUESTS],
+  auditLog:       [...AUDIT_LOG],
+  users:          [...USERS],
+  activeScreen:   'kiosk',
+  activeTab:      {},
+  ltOfficeFilter: 'all',
+  teamOfficeFilter:'all',
+  idCounter:      200,
+  changingPIN:    false,
+};
+
+// ── Helpers ────────────────────────────────────────────────
+function uid() { return 'id'+(++STATE.idCounter); }
+function getUser(id) { return STATE.users.find(u=>u.id===id); }
+
+function monthsSince(dateStr) {
+  const d = new Date(dateStr);
+  return (YEAR-d.getFullYear())*12+(MONTH-d.getMonth());
+}
+
+function leaveBalance(userId) {
+  const user = getUser(userId);
+  if (!user) return {earned:0,used:0,available:0,pending:0};
+  const months = Math.max(0, monthsSince(user.startDate)-POLICY.probationMonths);
+  const earned = months*POLICY.accrualPerMonth;
+  const used = STATE.leaveRequests
+    .filter(r=>r.userId===userId&&r.status==='approved')
+    .reduce((a,r)=>a+r.days,0);
+  const pending = STATE.leaveRequests
+    .filter(r=>r.userId===userId&&r.status==='pending')
+    .reduce((a,r)=>a+r.days,0);
+  return {earned, used, available:Math.max(0,earned-used), pending};
+}
+
+function userNotifs(userId) { return STATE.notifications.filter(n=>n.userId===userId); }
+function unreadCount(userId){ return STATE.notifications.filter(n=>n.userId===userId&&!n.read).length; }
+
+function addAudit(actor,action,target) {
+  const now=new Date().toISOString().replace('T',' ').slice(0,16);
+  STATE.auditLog.unshift({id:uid(),actor,action,target,ts:now,ip:'system'});
+}
+
+function addNotif(userId,type,msg,link='') {
+  const now=new Date().toISOString().replace('T',' ').slice(0,16);
+  STATE.notifications.unshift({id:uid(),userId,type,msg,read:false,ts:now,link});
+}
+
+function calcHours(inTs,outTs) {
+  if (!inTs||!outTs) return null;
+  const i=new Date(inTs.replace(' ','T'));
+  const o=new Date(outTs.replace(' ','T'));
+  return Math.round((o-i)/36000)/100;
+}
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const d=new Date(str);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function supervisorOf(userId) {
+  const u=getUser(userId);
+  if (!u||!u.supervisor) return null;
+  return getUser(u.supervisor);
+}
+
+// ── Access level helpers ───────────────────────────────────
+function canViewAllStaff(role) {
+  return ['ceo','super_admin','director','hr'].includes(role);
+}
+
+function canApproveLeave(role) {
+  return ['ceo','super_admin','director','manager','hr'].includes(role);
+}
+
+function isSuperAdmin(userId) {
+  const r = getUser(userId)?.role;
+  return r === 'super_admin' || r === 'ceo';
+}
+
+// ── Approval chain ─────────────────────────────────────────
+function getLeaveApprover(userId) {
+  const u = getUser(userId);
+  if (!u) return null;
+  // CEO & super admin — goes to HR for records only
+  if (u.role==='ceo' || u.role==='super_admin' || (u.role==='director'&&!u.supervisor)) return 'u7';
+  // Directors with supervisor → goes directly to Mohamed (u2)
+  if (u.role==='director') return 'u2';
+  // Manager → goes to their supervisor (Mohamed)
+  if (u.role==='manager') return u.supervisor;
+  // HR → goes to Claudia (u3)
+  if (u.role==='hr') return u.supervisor;
+  // Employee → goes to direct manager
+  return u.supervisor;
+}
+
+function leaveApprovalQueue(role, userId) {
+  return STATE.leaveRequests.filter(r=>{
+    const requester = getUser(r.userId);
+    if (!requester||r.status!=='pending') return false;
+    if (role==='ceo' || role==='super_admin') return true;
+    if (role==='director') {
+      // Mohamed sees: managers, directors reporting to him, escalations
+      const u = getUser(userId);
+      if (u?.id==='u2') return r.stage==='director';
+      // Claudia/Fabrice/Armand see only their direct reports
+      return r.stage==='director' && requester.supervisor===userId;
+    }
+    if (role==='manager') return r.stage==='manager' && requester.supervisor===userId;
+    if (role==='hr')      return r.stage==='hr';
+    return false;
+  });
+}
+
+function tsApprovalQueue(role, userId) {
+  return STATE.timesheets.filter(ts=>{
+    const u=getUser(ts.userId);
+    if (!u) return false;
+    if (role==='ceo' || role==='super_admin') return ts.empApproved&&!ts.hrRecorded;
+    if (role==='director') {
+      const dir=getUser(userId);
+      if (dir?.id==='u2') return ts.empApproved&&!ts.mgrApproved&&['director','manager'].includes(u.role);
+      return ts.empApproved&&!ts.mgrApproved&&u.supervisor===userId;
+    }
+    if (role==='manager') return ts.empApproved&&!ts.mgrApproved&&u.supervisor===userId&&u.role==='employee';
+    if (role==='hr')      return ts.mgrApproved&&!ts.hrRecorded;
+    return false;
+  });
+}
+
+// ── Visibility for Login Times / Team screens ──────────────
+function getVisibleUsers(currentUserId) {
+  const u = getUser(currentUserId);
+  if (!u) return [];
+  if (['ceo','super_admin','hr'].includes(u.role)) return STATE.users.filter(x=>x.active);
+  if (u.role==='director') {
+    // Mohamed sees all
+    if (u.id==='u2') return STATE.users.filter(x=>x.active);
+    // Claudia, Fabrice, Armand — read-only all Cotonou staff
+    return STATE.users.filter(x=>x.active&&(x.office===u.office||x.id===u.id));
+  }
+  if (u.role==='manager') return STATE.users.filter(x=>x.active&&(x.supervisor===u.id||x.id===u.id));
+  // Employee — own records only
+  return STATE.users.filter(x=>x.id===u.id);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// EXCEL EXPORT (SheetJS via CDN)
+// ═══════════════════════════════════════════════════════════
+
+function exportToExcel(data, filename, sheetName='Sheet1') {
+  if (typeof XLSX === 'undefined') {
+    toast('Excel library loading — please try again in a moment.','warn'); return;
+  }
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // Style header row
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const addr = XLSX.utils.encode_cell({ r:0, c:C });
+    if (!ws[addr]) continue;
+    ws[addr].s = { font:{ bold:true }, fill:{ fgColor:{ rgb:'0A0C0F' } } };
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename+'.xlsx');
+  toast(`Exported: ${filename}.xlsx`, 'success');
+}
+
+function exportClockLog(userId=null) {
+  const rows = [['Employee','Office','Date','Clock In','Clock Out','Hours','Method','Status']];
+  const events = userId
+    ? STATE.clockEvents.filter(e => e.userId === userId)
+    : STATE.clockEvents;
+  const paired = {};
+  events.forEach(e => {
+    const key = e.userId + '_' + e.ts.slice(0,10);
+    if (!paired[key]) paired[key] = { userId:e.userId, date:e.ts.slice(0,10), in:null, out:null, method:e.method };
+    if (e.type==='in') paired[key].in = e.ts.slice(11,16);
+    else paired[key].out = e.ts.slice(11,16);
+  });
+  Object.values(paired).forEach(p => {
+    const u = getUser(p.userId);
+    const office = OFFICES.find(o=>o.id===u?.office)?.label || u?.office || '—';
+    const hrs = p.in && p.out ? (parseFloat(p.out.replace(':','.')) - parseFloat(p.in.replace(':','.'))).toFixed(1) : '—';
+    rows.push([u?.name||'?', office, p.date, p.in||'—', p.out||'—', hrs, p.method,
+      p.in && !p.out ? 'Active' : p.in ? 'Complete' : 'Absent']);
+  });
+  exportToExcel(rows, 'cybastion-clock-log');
+}
+
+function exportLeaveReport(userId=null) {
+  const rows = [['Employee','Office','Type','From','To','Days','Half-day','Stage','Status','Submitted']];
+  const reqs = userId
+    ? STATE.leaveRequests.filter(r => r.userId === userId)
+    : STATE.leaveRequests;
+  reqs.forEach(r => {
+    const u = getUser(r.userId);
+    const office = OFFICES.find(o=>o.id===u?.office)?.label || u?.office || '—';
+    rows.push([u?.name||'?', office, r.type, r.from, r.to, r.days, r.halfDay||'—',
+      r.stage, r.status, r.submittedAt]);
+  });
+  exportToExcel(rows, 'cybastion-leave-report');
+}
+
+function exportLeaveBalances() {
+  const rows = [['Employee','Office','Role','Start Date','Months Active','Days Earned','Days Used','Days Pending','Available']];
+  STATE.users.filter(u=>u.active).forEach(u => {
+    const b = leaveBalance(u.id);
+    const months = Math.max(0, monthsSince(u.startDate) - POLICY.probationMonths);
+    const office = OFFICES.find(o=>o.id===u.office)?.label || u.office || '—';
+    rows.push([u.name, office, u.title, u.startDate, months, b.earned, b.used, b.pending, b.available]);
+  });
+  exportToExcel(rows, 'cybastion-leave-balances');
+}
+
+function exportTimesheets(userId=null) {
+  const rows = [['Employee','Period','Total Hours','Emp Approved','Emp Approved At','Mgr Approved','Mgr Approved At','HR Recorded']];
+  const tss = userId
+    ? STATE.timesheets.filter(t => t.userId === userId)
+    : STATE.timesheets;
+  tss.forEach(t => {
+    const u = getUser(t.userId);
+    rows.push([u?.name||'?', t.period, t.totalHours,
+      t.empApproved?'Yes':'No', t.empApprovedAt||'—',
+      t.mgrApproved?'Yes':'No', t.mgrApprovedAt||'—',
+      t.hrRecorded?'Yes':'No']);
+  });
+  exportToExcel(rows, 'cybastion-timesheets');
+}
+
+function exportAuditLog() {
+  const rows = [['Timestamp','Actor','Action','Target','IP']];
+  STATE.auditLog.forEach(a => {
+    rows.push([a.ts, a.actor, a.action, a.target, a.ip]);
+  });
+  exportToExcel(rows, 'cybastion-audit-log');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI UTILITIES
+// ═══════════════════════════════════════════════════════════
+
+let toastTimer = null;
+function toast(msg, type='success') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<span class="toast-dot"></span>${msg}`;
+  wrap.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(()=>el.remove(), 300); }, 3500);
+}
+
+function modal(id, open=true) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.classList.toggle('open', open);
+  document.getElementById('modal-overlay').classList.toggle('open', open);
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+  const ov = document.getElementById('modal-overlay');
+  if (ov) ov.classList.remove('open');
+}
+
+function badge(text, type) {
+  return `<span class="badge badge-${type}">${text}</span>`;
+}
+
+function statusBadge(status, stage) {
+  if (status === 'approved') return badge('Approved','approved');
+  if (status === 'denied')   return badge('Denied','denied');
+  if (status === 'pending') {
+    if (stage === 'manager')  return badge('Awaiting Manager','mgr');
+    if (stage === 'director') return badge('Awaiting Director','director');
+    if (stage === 'hr')       return badge('Awaiting HR','hr');
+  }
+  return badge(status,'pending');
+}
+
+function avatar(user, size='md') {
+  const colors = {
+    u1:'#ef4444', u2:'#0080ff', u3:'#f59e0b', u4:'#00c6a2', u5:'#a855f7'
+  };
+  const bg = colors[user?.id] || '#555e72';
+  return `<div class="avatar avatar-${size}" style="background:${bg}">${user?.initials||'??'}</div>`;
+}
+
+function progressBar(val, max, warn=60, danger=85) {
+  const pct = max > 0 ? Math.min(100, Math.round(val/max*100)) : 0;
+  const cls = pct >= danger ? 'danger' : pct >= warn ? 'warn' : '';
+  return `<div class="prog-wrap"><div class="prog-bar ${cls}" style="width:${pct}%"></div></div>`;
+}
+
+function flowSteps(steps) {
+  return `<div class="flow-row">${steps.map(([label, sub, state])=>`
+    <div class="flow-step ${state}">
+      <div class="flow-node">${state==='done'?'✓':state==='denied'?'✗':steps.indexOf?steps.findIndex(s=>s===steps.find(s=>s[2]==='active'))+1:''}</div>
+      <div class="flow-label">${label}<br><small>${sub}</small></div>
+    </div>`).join('<div class="flow-arrow">→</div>')}</div>`;
+}
+
+function confirmDialog(msg, onYes) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-yes').onclick = () => { closeAllModals(); onYes(); };
+  modal('confirm-modal', true);
+}
+
+function showScreen(id) {
+  STATE.activeScreen = id;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const scr = document.getElementById('scr-'+id);
+  if (scr) { scr.classList.add('active'); renderScreen(id); }
+  const nav = document.querySelector(`.nav-item[data-screen="${id}"]`);
+  if (nav) nav.classList.add('active');
+  const titles = {
+    kiosk:'Kiosk — Clock In / Out', timesheet:'My Timesheet',
+    leave:'Leave Requests', logtimes:'Login Times',
+    approvals:'Approvals', team:'Team Overview',
+    users:'User Management', audit:'Audit Log',
+    notifications:'Notifications', profile:'My Profile'
+  };
+  document.getElementById('page-title').textContent = titles[id] || id;
+}
+
+function setTab(screenId, tab) {
+  STATE.activeTab[screenId] = tab;
+  document.querySelectorAll(`#scr-${screenId} .tab`).forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.querySelectorAll(`#scr-${screenId} .tab-panel`).forEach(p => {
+    p.classList.toggle('active', p.dataset.tab === tab);
+  });
+}
+
+function updateNotifBadge() {
+  if (!STATE.currentUser) return;
+  const count = unreadCount(STATE.currentUser.id);
+  const badge = document.getElementById('notif-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// SCREEN RENDERERS
+// ═══════════════════════════════════════════════════════════
+
+function renderScreen(id) {
+  switch(id) {
+    case 'kiosk':        renderKiosk(); break;
+    case 'timesheet':    renderTimesheet(); break;
+    case 'leave':        renderLeave(); break;
+    case 'logtimes':     renderLogTimes(); break;
+    case 'approvals':    renderApprovals(); break;
+    case 'team':         renderTeam(); break;
+    case 'users':        renderUsers(); break;
+    case 'audit':        renderAudit(); break;
+    case 'notifications':renderNotifications(); break;
+    case 'profile':      renderProfile(); break;
+  }
+}
+
+// ── KIOSK ──────────────────────────────────────────────────
+function renderKiosk() {
+  updateNotifBadge();
+}
+
+let kioskIdleTimer = null;
+function resetKioskIdle() {
+  clearTimeout(kioskIdleTimer);
+  kioskIdleTimer = setTimeout(clearKioskPin, POLICY.kioskTimeout * 1000);
+}
+
+function kp(d) {
+  if (STATE.kioskPin.length >= 4) return;
+  STATE.kioskPin += d;
+  updatePinDots();
+  resetKioskIdle();
+  if (STATE.kioskPin.length === 4) validatePin();
+}
+function kpDel() { STATE.kioskPin = STATE.kioskPin.slice(0,-1); updatePinDots(); resetKioskIdle(); }
+function clearKioskPin() {
+  STATE.kioskPin = '';
+  updatePinDots();
+  document.getElementById('kiosk-btn-in').disabled = true;
+  document.getElementById('kiosk-btn-out').disabled = true;
+  document.getElementById('kiosk-user-label').textContent = 'Enter your 4-digit PIN';
+  document.getElementById('kiosk-user-label').style.color = 'var(--text3)';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('pd'+i);
+    if (d) d.classList.toggle('filled', i < STATE.kioskPin.length);
+  }
+}
+
+function validatePin() {
+  const user = STATE.users.find(u => u.pin === STATE.kioskPin && u.active);
+  const lbl = document.getElementById('kiosk-user-label');
+  if (!user) {
+    const att = (STATE.kioskAttempts[STATE.kioskPin] || 0) + 1;
+    STATE.kioskAttempts[STATE.kioskPin] = att;
+    lbl.textContent = `Invalid PIN (${att} attempt${att>1?'s':''})`;
+    lbl.style.color = 'var(--danger)';
+    document.getElementById('kiosk-btn-in').disabled = true;
+    document.getElementById('kiosk-btn-out').disabled = true;
+    setTimeout(clearKioskPin, 1500);
+    return;
+  }
+  lbl.textContent = `Welcome, ${user.name}`;
+  lbl.style.color = 'var(--accent)';
+  document.getElementById('kiosk-btn-in').disabled = false;
+  document.getElementById('kiosk-btn-out').disabled = false;
+}
+
+function doClock(type) {
+  const user = STATE.users.find(u => u.pin === STATE.kioskPin && u.active);
+  if (!user) return;
+  const now = new Date();
+  const ts = now.toISOString().replace('T',' ').slice(0,16);
+  const time = ts.slice(11,16);
+  STATE.clockEvents.push({ id:uid(), userId:user.id, type, ts, method:'kiosk', ip:'192.168.1.10' });
+  addAudit(user.name, `Clocked ${type}`, `via kiosk at ${time}`);
+  toast(`${user.name} clocked ${type} at ${time}`, 'success');
+  // Photo capture simulation
+  document.getElementById('photo-flash').classList.add('flash');
+  setTimeout(() => document.getElementById('photo-flash').classList.remove('flash'), 600);
+  clearKioskPin();
+}
+
+// ── TIMESHEET ──────────────────────────────────────────────
+function renderTimesheet() {
+  const u = STATE.currentUser;
+  const ts = STATE.timesheets.find(t => t.userId === u.id && t.weekOf === '2026-03-31') || STATE.timesheets.find(t => t.userId === u.id);
+
+  // Reminder banner
+  const banner = document.getElementById('ts-reminder');
+  if (banner) {
+    const needsApproval = ts && !ts.empApproved;
+    banner.style.display = needsApproval ? 'flex' : 'none';
+  }
+
+  // Week grid
+  const weekData = [
+    { name:'Mon', date:'Mar 31', in:'07:58', out:'17:32', hours:9.6 },
+    { name:'Tue', date:'Apr 1',  in:'08:04', out:'17:29', hours:9.4 },
+    { name:'Wed', date:'Apr 2',  in:'08:02', out:'17:30', hours:9.5 },
+    { name:'Thu', date:'Apr 3',  in:'08:02', out:'—',     hours:null, today:true },
+    { name:'Fri', date:'Apr 4',  in:'—',     out:'—',     hours:null },
+    { name:'Sat', date:'Apr 5',  in:'—',     out:'—',     hours:null, weekend:true },
+    { name:'Sun', date:'Apr 6',  in:'—',     out:'—',     hours:null, weekend:true },
+  ];
+  document.getElementById('week-grid').innerHTML = weekData.map(d => `
+    <div class="day-card ${d.today?'today':''} ${d.weekend?'weekend':''}">
+      <div class="day-name">${d.name}</div>
+      <div class="day-date">${d.date}</div>
+      ${d.in !== '—' ? `
+        <div class="day-time in">↑ ${d.in}</div>
+        <div class="day-time out">↓ ${d.out !== '—' ? d.out : 'active'}</div>
+        <div class="day-hours">${d.hours ? d.hours+'h' : '...'}</div>
+      ` : `<div class="day-absent">—</div>`}
+    </div>`).join('');
+
+  // Status
+  const statusEl = document.getElementById('ts-status');
+  if (statusEl && ts) {
+    if (ts.hrRecorded) statusEl.innerHTML = badge('HR Recorded','approved');
+    else if (ts.mgrApproved) statusEl.innerHTML = badge('Manager Approved','mgr');
+    else if (ts.empApproved) statusEl.innerHTML = badge('Awaiting Manager','pending');
+    else statusEl.innerHTML = badge('Pending Your Approval','warn');
+  }
+
+  // Approve btn
+  const appBtn = document.getElementById('ts-approve-btn');
+  if (appBtn && ts) {
+    appBtn.style.display = ts.empApproved ? 'none' : 'inline-flex';
+  }
+
+  // History table
+  const hist = STATE.timesheets.filter(t => t.userId === u.id);
+  document.getElementById('ts-history').innerHTML = hist.map(t => `
+    <tr>
+      <td>${t.period}</td>
+      <td>${t.totalHours}h</td>
+      <td>${t.empApproved ? badge('Approved','approved') : badge('Pending','warn')}</td>
+      <td>${t.mgrApproved ? badge('Approved','approved') : t.empApproved ? badge('Awaiting','pending') : '—'}</td>
+      <td>${t.hrRecorded ? badge('Recorded','approved') : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty-row">No timesheet records yet.</td></tr>';
+}
+
+function approveMyTimesheet() {
+  const u = STATE.currentUser;
+  const ts = STATE.timesheets.find(t => t.userId === u.id && !t.empApproved);
+  if (!ts) return;
+  ts.empApproved = true;
+  ts.empApprovedAt = todayStr();
+  addAudit(u.name, 'Self-approved timesheet', ts.period);
+  // notify manager/director
+  const sup = supervisorOf(u.id);
+  if (sup) addNotif(sup.id, 'timesheet', `${u.name} approved their timesheet for ${ts.period}`, 'approvals');
+  toast('Timesheet approved and sent to your supervisor.', 'success');
+  document.getElementById('ts-reminder').style.display = 'none';
+  renderTimesheet();
+}
+
+// ── LEAVE ──────────────────────────────────────────────────
+function renderLeave() {
+  const u = STATE.currentUser;
+  const bal = leaveBalance(u.id);
+
+  document.getElementById('bal-available').textContent = bal.available;
+  document.getElementById('bal-used').textContent = bal.used;
+  document.getElementById('bal-pending').textContent = bal.pending;
+  document.getElementById('bal-earned').textContent = bal.earned;
+
+  const pct = bal.earned > 0 ? Math.round(bal.used/bal.earned*100) : 0;
+  document.getElementById('bal-progress').style.width = pct + '%';
+
+  // My requests
+  const myReqs = STATE.leaveRequests.filter(r => r.userId === u.id);
+  document.getElementById('my-leave-body').innerHTML = myReqs.map(r => `
+    <tr>
+      <td>${r.type}${r.halfDay ? ` <small class="half-tag">${r.halfDay}</small>` : ''}</td>
+      <td>${fmtDate(r.from)}${r.to !== r.from ? ' → '+fmtDate(r.to) : ''}</td>
+      <td>${r.days}d</td>
+      <td>${statusBadge(r.status, r.stage)}</td>
+      <td>${fmtDate(r.submittedAt)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty-row">No leave requests yet.</td></tr>';
+
+  // Yearly breakdown
+  const types = ['Vacation','Sick Leave','Personal','Maternity / Paternity','Compassionate'];
+  document.getElementById('yearly-breakdown').innerHTML = types.map(t => {
+    const used = myReqs.filter(r=>r.type===t && r.status==='approved').reduce((a,r)=>a+r.days,0);
+    const pct = bal.earned > 0 ? Math.min(100, Math.round(used/bal.earned*100)) : 0;
+    return `<div class="breakdown-row">
+      <div class="breakdown-label"><span>${t}</span><span>${used}d</span></div>
+      ${progressBar(used, Math.max(bal.earned,1))}
+    </div>`;
+  }).join('');
+
+  // Accrual schedule
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const probEnd = new Date(u.startDate);
+  probEnd.setMonth(probEnd.getMonth() + POLICY.probationMonths);
+  document.getElementById('accrual-schedule').innerHTML = months.map((m,i) => {
+    const isActive = i <= MONTH;
+    const isProbation = new Date(YEAR, i, 1) < probEnd;
+    return `<div class="accrual-row ${isProbation?'probation':''}">
+      <span>${m} ${YEAR}</span>
+      <span class="${isProbation?'text-muted':'text-accent'}">${isProbation ? 'Probation' : `+${POLICY.accrualPerMonth} days ${isActive?'✓':''}`}</span>
+    </div>`;
+  }).join('');
+}
+
+function openLeaveModal() {
+  const today = todayStr();
+  document.getElementById('lv-from').value = today;
+  document.getElementById('lv-to').value = today;
+  document.getElementById('lv-days-calc').textContent = '1 day';
+  document.getElementById('lv-note').value = '';
+  document.getElementById('lv-type').value = 'Vacation';
+  document.getElementById('lv-halfday').value = '';
+
+  // Show approver info
+  const u = STATE.currentUser;
+  const approverId = getApproverForLeave(u.id);
+  const approver = approverId ? getUser(approverId) : null;
+  const hrUser = STATE.users.find(u2 => u2.role === 'hr');
+  let flowHtml = '';
+  if (u.role === 'employee') {
+    flowHtml = `<b>${approver?.name||'Manager'}</b> (Manager) → <b>${hrUser?.name||'HR'}</b> (HR)`;
+  } else if (u.role === 'manager' || u.role === 'hr') {
+    flowHtml = `<b>${approver?.name||'Director'}</b> (Director) → <b>${hrUser?.name||'HR'}</b> (Records)`;
+  } else {
+    flowHtml = `<b>${hrUser?.name||'HR'}</b> (Records only)`;
+  }
+  document.getElementById('lv-flow-text').innerHTML = `Your request will go to: ${flowHtml}`;
+  modal('leave-modal', true);
+}
+
+function calcLeaveDays() {
+  const from = document.getElementById('lv-from').value;
+  const to   = document.getElementById('lv-to').value;
+  const half = document.getElementById('lv-halfday').value;
+  if (!from || !to) return;
+  let days = Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
+  // subtract weekends
+  let count = 0;
+  const cur = new Date(from);
+  const end = new Date(to);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6 && !POLICY.benin_holidays_2026.includes(cur.toISOString().split('T')[0])) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (half) count = 0.5;
+  document.getElementById('lv-days-calc').textContent = `${count} working day${count !== 1 ? 's' : ''}`;
+}
+
+function submitLeave() {
+  const u = STATE.currentUser;
+  const type  = document.getElementById('lv-type').value;
+  const from  = document.getElementById('lv-from').value;
+  const to    = document.getElementById('lv-to').value;
+  const note  = document.getElementById('lv-note').value;
+  const half  = document.getElementById('lv-halfday').value || null;
+  if (!from || !to) { toast('Please select dates','warn'); return; }
+
+  // calc days
+  let count = 0;
+  const cur = new Date(from); const end = new Date(to);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (half) count = 0.5;
+
+  // determine stage
+  let stage = 'manager';
+  if (u.role === 'manager' || u.role === 'hr') stage = 'director';
+  if (u.role === 'director') stage = 'hr';
+
+  const req = { id:uid(), userId:u.id, type, from, to, days:count, halfDay:half,
+    note, status:'pending', stage,
+    mgrAction:null, mgrActedAt:null, hrAction:null, hrActedAt:null,
+    submittedAt:todayStr() };
+  STATE.leaveRequests.unshift(req);
+
+  // notify approver
+  const approverId = getApproverForLeave(u.id);
+  if (approverId) addNotif(approverId, 'leave_request', `${u.name} submitted a ${type} request (${from}${to!==from?' → '+to:''})`, 'approvals');
+
+  addAudit(u.name, 'Submitted leave request', `${type} ${from} → ${to} (${count} days)`);
+  modal('leave-modal', false);
+  toast('Leave request submitted!', 'success');
+  renderLeave();
+}
+
+// ── LOGIN TIMES ─────────────────────────────────────────────
+function renderLogTimes(filter) {
+  if (!filter) filter = STATE.activeTab['logtimes'] || 'today';
+  const u = STATE.currentUser;
+  const officeFilter = STATE.ltOfficeFilter || 'all';
+
+  // ── VISIBILITY RULES ──────────────────────────────────────
+  // Director  → all staff, filterable by office
+  // HR Admin  → all staff, filterable by office
+  // Manager   → own direct reports ONLY + themselves
+  // Employee  → own records ONLY (redirected to timesheet)
+  if (u.role === 'employee') {
+    showScreen('timesheet'); return;
+  }
+
+  // Build visible user set
+  let visibleUsers;
+  if (u.role === 'director' || u.role === 'hr') {
+    visibleUsers = STATE.users.filter(u2 => u2.active);
+    if (officeFilter !== 'all') visibleUsers = visibleUsers.filter(u2 => u2.office === officeFilter);
+  } else if (u.role === 'manager') {
+    // Strictly own team + self only — no other teams
+    visibleUsers = STATE.users.filter(u2 => u2.active && (u2.supervisor === u.id || u2.id === u.id));
+  } else {
+    visibleUsers = [u];
+  }
+  const visibleIds = new Set(visibleUsers.map(u2 => u2.id));
+
+  // Build paired clock events
+  const paired = {};
+  STATE.clockEvents
+    .filter(e => visibleIds.has(e.userId))
+    .forEach(e => {
+      const key = e.userId + '_' + e.ts.slice(0,10);
+      if (!paired[key]) paired[key] = {
+        userId:e.userId, date:e.ts.slice(0,10),
+        in:null, out:null, inTs:null, outTs:null, method:e.method
+      };
+      if (e.type==='in')  { paired[key].in = e.ts.slice(11,16); paired[key].inTs = e.ts; }
+      else                { paired[key].out = e.ts.slice(11,16); paired[key].outTs = e.ts; }
+    });
+
+  let rows = Object.values(paired);
+  const refDate = '2026-04-03';
+  if (filter === 'today')  rows = rows.filter(r => r.date === refDate);
+  else if (filter === 'week')  rows = rows.filter(r => r.date >= '2026-03-31' && r.date <= '2026-04-06');
+  rows.sort((a,b) => b.date.localeCompare(a.date) || (b.in||'').localeCompare(a.in||''));
+
+  // Stats (always today's across visible users)
+  const todayRows = Object.values(paired).filter(r => r.date === refDate);
+  document.getElementById('lt-stat-in').textContent = todayRows.filter(r=>r.in&&!r.out).length;
+  document.getElementById('lt-stat-total').textContent = visibleUsers.length;
+  const lateCount = todayRows.filter(r=>r.in && r.in > POLICY.lateAfter).length;
+  const lateEl = document.getElementById('lt-stat-late');
+  if (lateEl) lateEl.textContent = lateCount;
+  const absentCount = visibleUsers.filter(u2 => !todayRows.find(r=>r.userId===u2.id&&r.in)).length;
+  const absentEl = document.getElementById('lt-stat-absent');
+  if (absentEl) absentEl.textContent = absentCount;
+
+  // Render office filter pills (HR/Director only)
+  const filterRow = document.getElementById('lt-office-filter');
+  if (filterRow) {
+    if (['ceo','super_admin','director','hr'].includes(u.role)) {
+      filterRow.style.display = 'flex';
+      filterRow.innerHTML = `
+        <span style="font-size:12px;color:var(--text3);margin-right:6px">Office:</span>
+        ${[{id:'all',label:'All Offices'},...OFFICES].map(o=>`
+          <button class="office-pill ${officeFilter===o.id?'active':''}"
+            onclick="STATE.ltOfficeFilter='${o.id}';renderLogTimes('${filter}')">${o.label}</button>
+        `).join('')}
+        <span style="font-size:11px;color:var(--text3);margin-left:10px">
+          ${u.role==='manager'?'Showing your team only':'Showing all staff'}
+        </span>`;
+    } else {
+      filterRow.style.display = 'none';
+    }
+  }
+
+  document.getElementById('lt-body').innerHTML = rows.map(r => {
+    const emp = getUser(r.userId);
+    const hrs = r.in && r.out ? calcHours(r.inTs, r.outTs) : null;
+    const late = r.in && r.in > POLICY.lateAfter;
+    const earlyOut = r.out && r.out < POLICY.earlyBefore;
+    const status = !r.in ? 'absent' : !r.out ? 'active' : 'done';
+    const office = OFFICES.find(o=>o.id===emp?.office);
+    return `<tr>
+      <td><div class="name-cell">${avatar(emp,'sm')}
+        <div><div class="name">${emp?.name||'?'}</div>
+        <div class="sub">${emp?.title||''} · <span class="office-tag">${office?.label||emp?.office||'—'}</span></div></div>
+      </div></td>
+      <td>${fmtDate(r.date)}</td>
+      <td class="${late?'text-warn':'text-accent'} mono">${r.in||'—'}${late?' ⚠':''}</td>
+      <td class="mono ${earlyOut?'text-warn':'text-muted'}">${r.out||'—'}${earlyOut?' ⚠':''}</td>
+      <td class="mono">${hrs!=null?hrs+'h':'—'}</td>
+      <td><span class="chip">${r.method}</span></td>
+      <td>${status==='active'?badge('Clocked In','in'):status==='absent'?badge('Absent','denied'):badge('Done','approved')}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-row">No records for this period.</td></tr>`;
+}
+
+// ── APPROVALS ──────────────────────────────────────────────
+function renderApprovals() {
+  const u = STATE.currentUser;
+  const role = u.role;
+  const activeTab = STATE.activeTab['approvals'] || 'timesheets';
+  setTab('approvals', activeTab);
+
+  // Timesheets tab
+  const tsQueue = tsApprovalQueue(role, u.id);
+  const tsEl = document.getElementById('ap-ts-body');
+  if (tsEl) {
+    tsEl.innerHTML = tsQueue.map(ts => {
+      const emp = getUser(ts.userId);
+      return `<tr>
+        <td><div class="name-cell">${avatar(emp,'sm')}<span>${emp?.name}</span></div></td>
+        <td>${ts.period}</td>
+        <td>${ts.totalHours}h</td>
+        <td>${fmtDate(ts.empApprovedAt)}</td>
+        <td>${badge('Employee Approved','approved')}</td>
+        <td>
+          <button class="btn btn-success btn-sm" onclick="approveTS('${ts.id}')">Approve</button>
+          <button class="btn btn-ghost btn-sm" onclick="returnTS('${ts.id}')">Return</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" class="empty-row">No timesheets pending your approval.</td></tr>';
+  }
+
+  // Monthly rollup (HR only)
+  const rollupEl = document.getElementById('ap-rollup');
+  if (rollupEl) rollupEl.style.display = role === 'hr' ? 'block' : 'none';
+
+  // Leave tab
+  const lvQueue = leaveApprovalQueue(role, u.id);
+  const lvEl = document.getElementById('ap-lv-body');
+  if (lvEl) {
+    lvEl.innerHTML = lvQueue.map(r => {
+      const emp = getUser(r.userId);
+      const bal = leaveBalance(r.userId);
+      return `<div class="approval-card">
+        <div class="approval-card-top">
+          <div class="approval-card-who">
+            ${avatar(emp,'md')}
+            <div>
+              <div class="name">${emp?.name}</div>
+              <div class="sub">${emp?.title} · ${r.type}${r.halfDay?` (${r.halfDay})`:''}</div>
+            </div>
+          </div>
+          ${statusBadge(r.status, r.stage)}
+        </div>
+        <div class="approval-meta">
+          <span>📅 ${fmtDate(r.from)}${r.to!==r.from?' → '+fmtDate(r.to):''}</span>
+          <span>📆 ${r.days} day${r.days!==1?'s':''}</span>
+          <span>💼 Balance: ${bal.available} days available</span>
+          ${r.note ? `<span>📝 "${r.note}"</span>` : ''}
+        </div>
+        <div class="flow-compact">
+          <div class="fc-step ${r.stage!=='pending'||r.status==='approved'?'done':'active'}">Submit</div>
+          <div class="fc-arrow">→</div>
+          <div class="fc-step ${r.stage==='hr'||r.status==='approved'?'done':r.stage==='manager'||r.stage==='director'?'active':'pending'}">${role==='director'?'Director':'Manager'}</div>
+          <div class="fc-arrow">→</div>
+          <div class="fc-step ${r.status==='approved'?'done':r.stage==='hr'?'active':'pending'}">HR</div>
+          <div class="fc-arrow">→</div>
+          <div class="fc-step ${r.status==='approved'?'done':'pending'}">Done</div>
+        </div>
+        <div class="approval-actions">
+          <button class="btn btn-success" onclick="approveLeave('${r.id}')">
+            ${role==='hr' ? 'Final Approve' : 'Approve → Forward'}
+          </button>
+          <button class="btn btn-ghost" onclick="returnLeave('${r.id}')">Return for Info</button>
+          <button class="btn btn-danger" onclick="denyLeave('${r.id}')">Deny</button>
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty">No leave requests pending your approval.</div>';
+  }
+
+  // Badge counts
+  const tsCount = document.getElementById('ap-ts-count');
+  const lvCount = document.getElementById('ap-lv-count');
+  if (tsCount) tsCount.textContent = tsQueue.length || '';
+  if (lvCount) lvCount.textContent = lvQueue.length || '';
+}
+
+function approveTS(tsId) {
+  const u = STATE.currentUser;
+  const ts = STATE.timesheets.find(t => t.id === tsId);
+  const emp = getUser(ts.userId);
+  if (!ts) return;
+  const role = u.role;
+  if (role === 'manager' || role === 'director') {
+    ts.mgrApproved = true; ts.mgrApprovedAt = todayStr();
+    addNotif(ts.userId, 'timesheet', `Your timesheet (${ts.period}) was approved by ${u.name}`, 'timesheet');
+    const hrUser = STATE.users.find(u2=>u2.role==='hr');
+    if (hrUser) addNotif(hrUser.id, 'timesheet', `${emp?.name}'s timesheet (${ts.period}) awaiting HR records`, 'approvals');
+  } else if (role === 'hr') {
+    ts.hrRecorded = true;
+  }
+  addAudit(u.name, 'Approved timesheet', `${emp?.name} — ${ts.period}`);
+  toast('Timesheet approved!', 'success');
+  renderApprovals();
+}
+
+function returnTS(tsId) {
+  const ts = STATE.timesheets.find(t => t.id === tsId);
+  if (!ts) return;
+  addNotif(ts.userId, 'timesheet', `Your timesheet (${ts.period}) was returned for corrections`, 'timesheet');
+  toast('Timesheet returned to employee.', 'warn');
+  renderApprovals();
+}
+
+function approveLeave(lrId) {
+  const u = STATE.currentUser;
+  const r = STATE.leaveRequests.find(x => x.id === lrId);
+  if (!r) return;
+  const emp = getUser(r.userId);
+  const role = u.role;
+  if (role === 'manager' || role === 'director') {
+    r.mgrAction = 'approved'; r.mgrActedAt = todayStr();
+    r.stage = 'hr';
+    const hrUser = STATE.users.find(u2=>u2.role==='hr');
+    if (hrUser) addNotif(hrUser.id,'leave_request',`${emp?.name}'s ${r.type} request approved by ${u.name} — awaiting HR sign-off`,'approvals');
+    addNotif(r.userId,'leave_request',`Your ${r.type} request was approved by ${u.name} — now with HR`,'leave');
+  } else if (role === 'hr') {
+    r.hrAction = 'approved'; r.hrActedAt = todayStr();
+    r.status = 'approved'; r.stage = 'done';
+    addNotif(r.userId,'leave_request',`Your ${r.type} request (${r.from}) has been fully approved!`,'leave');
+    const sup = supervisorOf(r.userId);
+    if (sup) addNotif(sup.id,'leave_request',`${emp?.name}'s ${r.type} request is fully approved.`,'leave');
+  }
+  addAudit(u.name, 'Approved leave request', `${emp?.name} — ${r.type} ${r.from}`);
+  toast('Leave request approved!', 'success');
+  renderApprovals();
+  updateNotifBadge();
+}
+
+function denyLeave(lrId) {
+  confirmDialog('Deny this leave request? The employee will be notified.', () => {
+    const u = STATE.currentUser;
+    const r = STATE.leaveRequests.find(x => x.id === lrId);
+    if (!r) return;
+    const emp = getUser(r.userId);
+    r.status = 'denied'; r.stage = 'done';
+    addNotif(r.userId,'leave_request',`Your ${r.type} request (${r.from}) was denied.`,'leave');
+    addAudit(u.name, 'Denied leave request', `${emp?.name} — ${r.type} ${r.from}`);
+    toast('Request denied. Employee notified.', 'error');
+    renderApprovals();
+  });
+}
+
+function returnLeave(lrId) {
+  const u = STATE.currentUser;
+  const r = STATE.leaveRequests.find(x => x.id === lrId);
+  if (!r) return;
+  const emp = getUser(r.userId);
+  addNotif(r.userId,'leave_request',`Your ${r.type} request was returned — please provide more information.`,'leave');
+  addAudit(u.name, 'Returned leave request for info', `${emp?.name} — ${r.type} ${r.from}`);
+  toast('Request returned to employee.', 'warn');
+  renderApprovals();
+}
+
+// ── TEAM ───────────────────────────────────────────────────
+function renderTeam() {
+  const u = STATE.currentUser;
+  const officeFilter = STATE.teamOfficeFilter || 'all';
+
+  // ── VISIBILITY RULES ──────────────────────────────────────
+  // Director  → all staff across all offices, filterable
+  // HR Admin  → all staff across all offices, filterable
+  // Manager   → own direct reports + themselves only
+  let staff = STATE.users.filter(u2 => u2.active);
+  if (u.role === 'manager') {
+    staff = staff.filter(u2 => u2.supervisor === u.id || u2.id === u.id);
+  } else if (u.role === 'director' || u.role === 'hr') {
+    if (officeFilter !== 'all') staff = staff.filter(u2 => u2.office === officeFilter);
+  }
+
+  // Office filter pills (HR/Director only)
+  const filterRow = document.getElementById('team-office-filter');
+  if (filterRow) {
+    if (['ceo','super_admin','director','hr'].includes(u.role)) {
+      filterRow.style.display = 'flex';
+      filterRow.innerHTML = `
+        <span style="font-size:12px;color:var(--text3);margin-right:6px">Office:</span>
+        ${[{id:'all',label:'All Offices'},...OFFICES].map(o=>`
+          <button class="office-pill ${officeFilter===o.id?'active':''}"
+            onclick="STATE.teamOfficeFilter='${o.id}';renderTeam()">${o.label}</button>
+        `).join('')}
+        <span style="font-size:11px;color:var(--text3);margin-left:10px">
+          ${staff.length} staff shown
+        </span>`;
+    } else {
+      filterRow.style.display = 'none';
+    }
+  }
+
+  // Leave visibility note for managers
+  const visNote = document.getElementById('team-vis-note');
+  if (visNote) {
+    if (u.role === 'manager') {
+      visNote.style.display = 'block';
+      visNote.innerHTML = `<span style="font-size:12px;color:var(--text3)">👁 Showing your direct reports only. Contact HR for org-wide data.</span>`;
+    } else {
+      visNote.style.display = 'none';
+    }
+  }
+
+  document.getElementById('team-body').innerHTML = staff.map(emp => {
+    const bal = leaveBalance(emp.id);
+    const months = Math.max(0, monthsSince(emp.startDate) - POLICY.probationMonths);
+    const pct = bal.earned > 0 ? Math.round(bal.used/bal.earned*100) : 0;
+    const sup = supervisorOf(emp.id);
+    const office = OFFICES.find(o=>o.id===emp.office);
+    return `<tr>
+      <td><div class="name-cell">${avatar(emp,'sm')}<div>
+        <div class="name">${emp.name}</div>
+        <div class="sub">${emp.email}</div>
+      </div></div></td>
+      <td>${emp.title}</td>
+      <td>${emp.dept}</td>
+      <td><span class="office-tag">${office?.label||emp.office||'—'}</span></td>
+      <td>${sup?.name||'—'}</td>
+      <td>${months}</td>
+      <td><b>${bal.earned}</b></td>
+      <td>${bal.used}</td>
+      <td><b class="${bal.available<3?'text-danger':bal.available<6?'text-warn':'text-accent'}">${bal.available}</b></td>
+      <td style="min-width:110px">${progressBar(bal.used,Math.max(bal.earned,1))}
+        <small style="font-size:11px;color:var(--text3)">${pct}%</small></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" class="empty-row">No staff to display.</td></tr>';
+
+  // Stats across filtered set
+  const refDate = '2026-04-03';
+  const inNow = STATE.clockEvents.filter(e => {
+    const isToday = e.ts.startsWith(refDate);
+    const visible = staff.find(s=>s.id===e.userId);
+    return isToday && e.type==='in' && visible;
+  }).length;
+  document.getElementById('team-stat-active').textContent = Math.min(inNow, staff.length);
+  document.getElementById('team-stat-total').textContent = staff.length;
+  document.getElementById('team-stat-onleave').textContent =
+    STATE.leaveRequests.filter(r =>
+      r.status==='approved' && r.from<='2026-04-03' && r.to>='2026-04-03'
+      && staff.find(s=>s.id===r.userId)
+    ).length;
+}
+
+// ── USERS ──────────────────────────────────────────────────
+function renderUsers() {
+  const viewer = STATE.currentUser;
+  const canEdit = ['super_admin','hr'].includes(viewer?.role);
+  document.getElementById('users-body').innerHTML = STATE.users.map(u => {
+    const office = OFFICES.find(o=>o.id===u.office);
+    return `<tr class="${u.active?'':'row-inactive'}">
+      <td><div class="name-cell">${avatar(u,'sm')}<div><div class="name">${u.name}</div><div class="sub">${u.email}</div></div></div></td>
+      <td>${u.title}</td>
+      <td>${u.dept}</td>
+      <td><span class="office-tag">${office?.label||u.office||'—'}</span></td>
+      <td>${supervisorOf(u.id)?.name||'—'}</td>
+      <td>${fmtDate(u.startDate)}</td>
+      <td>${u.active ? badge('Active','approved') : badge('Inactive','denied')}</td>
+      <td>
+        \${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openEditUser('\${u.id}')">Edit</button>
+        <button class="btn btn-warn btn-sm" onclick="resetPin('\${u.id}')">Reset PIN</button>
+        <button class="btn btn-\${u.active?'danger':'success'} btn-sm" onclick="toggleUser('\${u.id}')">\${u.active?'Deactivate':'Activate'}</button>` : '<span class="text-muted" style="font-size:12px">View only</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddUser() {
+  if (!['super_admin','hr'].includes(STATE.currentUser?.role)) {
+    toast('User management requires Super Admin or HR access.','warn'); return;
+  }
+  document.getElementById('add-user-form').reset();
+  document.getElementById('add-user-sup').innerHTML = STATE.users.filter(u=>u.active&&(u.role==='manager'||u.role==='director')).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+  modal('add-user-modal', true);
+}
+
+function submitAddUser() {
+  const name  = document.getElementById('au-name').value.trim();
+  const email = document.getElementById('au-email').value.trim();
+  const title = document.getElementById('au-title').value.trim();
+  const dept  = document.getElementById('au-dept').value.trim();
+  const role  = document.getElementById('au-role').value;
+  const sup   = document.getElementById('au-sup').value;
+  const start = document.getElementById('au-start').value;
+  const pin   = document.getElementById('au-pin').value;
+  const office= document.getElementById('au-office').value || 'cotonou';
+  if (!name||!email||!pin) { toast('Name, email and PIN are required','warn'); return; }
+  if (!/^\d{4}$/.test(pin)) { toast('PIN must be exactly 4 digits','warn'); return; }
+  if (/^(\d)\1{3}$/.test(pin)||pin==='1234'||pin==='0000'||pin==='4321') { toast('PIN too simple — choose a stronger PIN','warn'); return; }
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const newUser = { id:uid(), name, initials, role, title, pin, supervisor:sup||null,
+    dept, office, email, startDate:start||todayStr(), active:true };
+  STATE.users.push(newUser);
+  addAudit(STATE.currentUser.name, 'Added new user', `${name} (${role}) — ${office}`);
+  modal('add-user-modal', false);
+  toast(`${name} added successfully! Activation link sent to ${email}`, 'success');
+  renderUsers();
+}
+
+function resetPin(userId) {
+  const u = getUser(userId);
+  confirmDialog(`Reset PIN for ${u?.name}? They will receive a new setup link.`, () => {
+    addAudit(STATE.currentUser.name, 'Reset PIN', u?.name||'');
+    toast(`PIN reset link sent to ${u?.email}`, 'success');
+  });
+}
+
+function toggleUser(userId) {
+  const u = STATE.users.find(u2 => u2.id === userId);
+  if (!u) return;
+  const action = u.active ? 'Deactivate' : 'Activate';
+  confirmDialog(`${action} account for ${u.name}?`, () => {
+    u.active = !u.active;
+    addAudit(STATE.currentUser.name, `${action}d user account`, u.name);
+    toast(`${u.name} ${u.active?'activated':'deactivated'}.`, u.active?'success':'warn');
+    renderUsers();
+  });
+}
+
+function openEditUser(userId) {
+  const u = getUser(userId);
+  if (!u) return;
+  document.getElementById('eu-name').value  = u.name;
+  document.getElementById('eu-title').value = u.title;
+  document.getElementById('eu-dept').value  = u.dept;
+  document.getElementById('eu-email').value = u.email;
+  document.getElementById('eu-role').value  = u.role;
+  document.getElementById('eu-office').value = u.office || 'cotonou';
+  document.getElementById('eu-id').value = u.id;
+  document.getElementById('eu-sup').innerHTML = [
+    '<option value="">None</option>',
+    ...STATE.users.filter(u2=>u2.active&&u2.id!==u.id&&(u2.role==='manager'||u2.role==='director'||u2.role==='hr'))
+      .map(u2=>`<option value="${u2.id}" ${u.supervisor===u2.id?'selected':''}>${u2.name}</option>`)
+  ].join('');
+  modal('edit-user-modal', true);
+}
+
+function submitEditUser() {
+  const id = document.getElementById('eu-id').value;
+  const u = STATE.users.find(u2 => u2.id === id);
+  if (!u) return;
+  u.name   = document.getElementById('eu-name').value.trim() || u.name;
+  u.title  = document.getElementById('eu-title').value.trim() || u.title;
+  u.dept   = document.getElementById('eu-dept').value.trim() || u.dept;
+  u.email  = document.getElementById('eu-email').value.trim() || u.email;
+  u.role   = document.getElementById('eu-role').value;
+  u.office = document.getElementById('eu-office').value || u.office;
+  u.supervisor = document.getElementById('eu-sup').value || null;
+  u.initials = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  addAudit(STATE.currentUser.name, 'Updated user account', `${u.name} — office: ${u.office}`);
+  modal('edit-user-modal', false);
+  toast('User updated.', 'success');
+  renderUsers();
+}
+
+// ── AUDIT ──────────────────────────────────────────────────
+function renderAudit() {
+  document.getElementById('audit-body').innerHTML = STATE.auditLog.map(a => `
+    <tr>
+      <td class="mono text-muted">${a.ts}</td>
+      <td>${a.actor}</td>
+      <td>${a.action}</td>
+      <td class="text-muted">${a.target}</td>
+      <td class="mono text-muted">${a.ip}</td>
+    </tr>`).join('');
+}
+
+// ── NOTIFICATIONS ──────────────────────────────────────────
+function renderNotifications() {
+  const u = STATE.currentUser;
+  const notifs = userNotifs(u.id);
+  STATE.notifications.filter(n=>n.userId===u.id).forEach(n => n.read = true);
+  updateNotifBadge();
+  document.getElementById('notif-list').innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.read?'':'unread'}" onclick="if('${n.link}')showScreen('${n.link}')">
+      <div class="notif-icon notif-${n.type}"></div>
+      <div class="notif-body">
+        <div class="notif-msg">${n.msg}</div>
+        <div class="notif-time">${n.ts}</div>
+      </div>
+    </div>`).join('') || '<div class="empty">No notifications.</div>';
+}
+
+// ── PROFILE ────────────────────────────────────────────────
+function renderProfile() {
+  const u = STATE.currentUser;
+  const bal = leaveBalance(u.id);
+  const sup = supervisorOf(u.id);
+  document.getElementById('profile-content').innerHTML = `
+    <div class="profile-hero">
+      ${avatar(u,'xl')}
+      <div class="profile-info">
+        <h2>${u.name}</h2>
+        <p>${u.title} · ${u.dept}</p>
+        <p class="text-muted">${u.email}</p>
+      </div>
+    </div>
+    <div class="profile-grid">
+      <div class="card-sm"><div class="stat-val text-accent">${bal.available}</div><div class="stat-lbl">Days Available</div></div>
+      <div class="card-sm"><div class="stat-val">${bal.used}</div><div class="stat-lbl">Days Used</div></div>
+      <div class="card-sm"><div class="stat-val">${bal.earned}</div><div class="stat-lbl">Days Earned</div></div>
+      <div class="card-sm"><div class="stat-val">${bal.pending}</div><div class="stat-lbl">Days Pending</div></div>
+    </div>
+    <div class="profile-details">
+      <div class="detail-row"><span>Role</span><span>${u.title}</span></div>
+      <div class="detail-row"><span>Department</span><span>${u.dept}</span></div>
+      <div class="detail-row"><span>Supervisor</span><span>${sup?.name||'—'}</span></div>
+      <div class="detail-row"><span>Start Date</span><span>${fmtDate(u.startDate)}</span></div>
+      <div class="detail-row"><span>Probation ends</span><span>${fmtDate(new Date(new Date(u.startDate).setMonth(new Date(u.startDate).getMonth()+3)).toISOString().split('T')[0])}</span></div>
+      <div class="detail-row"><span>Working hours</span><span>Mon–Fri · 8:00 AM – 5:30 PM</span></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-ghost" onclick="toast('PIN change link sent to your email','success')">Change PIN</button>
+      <button class="btn btn-ghost" onclick="exportLeaveReport('${u.id}');exportClockLog('${u.id}')">Download My Records (Excel)</button>
+    </div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// PIN CHANGE — FORCED ON FIRST LOGIN + SELF-SERVICE
+// ═══════════════════════════════════════════════════════════
+
+function showForcedPINChange() {
+  STATE.changingPIN = true;
+  document.getElementById('pin-change-overlay').style.display = 'flex';
+  document.getElementById('pco-title').textContent = 'Set your PIN';
+  document.getElementById('pco-sub').textContent =
+    'Your account was set up with a default PIN. Please choose a new 4-digit PIN before continuing.';
+  document.getElementById('pco-skip').style.display = 'none';
+  resetPINChangeForm();
+}
+
+function showSelfServicePINChange() {
+  STATE.changingPIN = true;
+  document.getElementById('pin-change-overlay').style.display = 'flex';
+  document.getElementById('pco-title').textContent = 'Change your PIN';
+  document.getElementById('pco-sub').textContent = 'Enter your current PIN, then choose a new one.';
+  document.getElementById('pco-skip').style.display = 'inline-flex';
+  resetPINChangeForm();
+}
+
+function resetPINChangeForm() {
+  ['pco-current','pco-new','pco-confirm'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pco-error').textContent = '';
+}
+
+function submitPINChange() {
+  const u = STATE.currentUser;
+  const isForcedFirstLogin = u.mustChangePIN;
+  const currentInput = document.getElementById('pco-current').value.trim();
+  const newPin       = document.getElementById('pco-new').value.trim();
+  const confirmPin   = document.getElementById('pco-confirm').value.trim();
+  const errEl        = document.getElementById('pco-error');
+
+  // Validate current PIN (skip check if forced first login — they just came through login)
+  if (!isForcedFirstLogin && currentInput !== u.pin) {
+    errEl.textContent = 'Current PIN is incorrect.'; return;
+  }
+
+  // Validate new PIN format
+  if (!/^\d{4}$/.test(newPin)) {
+    errEl.textContent = 'PIN must be exactly 4 digits.'; return;
+  }
+
+  // Reject weak PINs
+  const weak = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999',
+                 '1234','4321','0123','3210','1357','2468'];
+  if (weak.includes(newPin)) {
+    errEl.textContent = 'PIN is too simple. Please choose a less predictable combination.'; return;
+  }
+
+  if (newPin !== confirmPin) {
+    errEl.textContent = 'PINs do not match.'; return;
+  }
+
+  if (newPin === u.pin && !isForcedFirstLogin) {
+    errEl.textContent = 'New PIN must be different from your current PIN.'; return;
+  }
+
+  // Apply
+  const userInState = STATE.users.find(x=>x.id===u.id);
+  userInState.pin = newPin;
+  userInState.mustChangePIN = false;
+  STATE.currentUser.pin = newPin;
+  STATE.currentUser.mustChangePIN = false;
+
+  addAudit(u.name, 'Changed PIN', 'Self-service PIN change');
+
+  document.getElementById('pin-change-overlay').style.display = 'none';
+  STATE.changingPIN = false;
+  toast('PIN updated successfully.', 'success');
+}
+
+function closePINChange() {
+  // Only allow closing if not a forced first-login change
+  if (STATE.currentUser?.mustChangePIN) return;
+  document.getElementById('pin-change-overlay').style.display = 'none';
+  STATE.changingPIN = false;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR BUILDER
+// ═══════════════════════════════════════════════════════════
+
+const NAV_ICONS = {
+  kiosk:    `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
+  timesheet:`<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  leave:    `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+  logtimes: `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 3h18M3 9h18M3 15h18M3 21h18"/></svg>`,
+  approvals:`<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>`,
+  team:     `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  users:    `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M15 3h6M18 0v6"/></svg>`,
+  audit:    `<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+};
+
+const ROLE_LABELS = {
+  ceo:'CEO', super_admin:'Super Admin', director:'Director',
+  manager:'Manager', hr:'HR Admin', employee:'Employee'
+};
+
+function buildSidebar() {
+  const u = STATE.currentUser;
+  if (!u) return;
+  const role = u.role;
+  const isAdmin = ['ceo','super_admin','director','hr'].includes(role);
+  const isMgr   = role === 'manager';
+  const apCount = leaveApprovalQueue(role,u.id).length + tsApprovalQueue(role,u.id).length;
+
+  const navItem = (id,label,badgeCount=0) => `
+    <div class="nav-item" data-screen="${id}" onclick="showScreen('${id}')">
+      ${NAV_ICONS[id]||''} ${label}
+      ${badgeCount>0?`<span class="nav-badge">${badgeCount}</span>`:''}
+    </div>`;
+
+  const colors={u15:'#dc2626',u1:'#ef4444',u2:'#0080ff',u3:'#7c3aed',u4:'#f59e0b',
+                u5:'#06b6d4',u6:'#00c6a2',u7:'#f97316'};
+  const avatarBg=colors[u.id]||'#556070';
+
+  document.getElementById('sidebar').innerHTML = `
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-icon"><svg viewBox="0 0 24 24" fill="var(--bg)"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+        <div><div class="logo-name">Cybastion</div><div class="logo-tagline">Workforce</div></div>
+      </div>
+    </div>
+    <div class="sidebar-user" onclick="showScreen('profile')">
+      <div class="avatar avatar-md" style="background:${avatarBg}">${u.initials}</div>
+      <div class="user-info">
+        <div class="uname">${u.name.split(' ')[0]}</div>
+        <div class="urole">${ROLE_LABELS[role]||role}</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-lbl">My Workspace</div>
+      ${navItem('kiosk','Kiosk')}
+      ${navItem('timesheet','My Timesheet')}
+      ${navItem('leave','My Leave')}
+    </div>
+    ${(isAdmin||isMgr)?`<div class="nav-section">
+      <div class="nav-section-lbl">Management</div>
+      ${navItem('logtimes','Login Times')}
+      ${navItem('approvals','Approvals',apCount)}
+      ${navItem('team','Team Overview')}
+    </div>`:''}
+    ${['ceo','super_admin','director','hr'].includes(role)?`<div class="nav-section">
+      <div class="nav-section-lbl">Admin</div>
+      ${navItem('users','User Management')}
+      ${navItem('audit','Audit Log')}
+    </div>`:''}
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">← Sign Out</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCREEN HTML BUILDERS
+// ═══════════════════════════════════════════════════════════
+
+function buildScreens() {
+  const u = STATE.currentUser;
+  const role = u.role;
+  const isAdmin = ['ceo','super_admin','director','hr'].includes(role);
+  const isMgr   = ['super_admin','director','hr','manager'].includes(role);
+
+  document.getElementById('content').innerHTML = `
+    ${screenKiosk()}
+    ${screenTimesheet()}
+    ${screenLeave()}
+    ${isMgr ? screenLogTimes() : ''}
+    ${isMgr ? screenApprovals(role) : ''}
+    ${isMgr ? screenTeam() : ''}
+    ${isAdmin ? screenUsers() : ''}
+    ${isAdmin ? screenAudit() : ''}
+    ${screenNotifications()}
+    ${screenProfile()}
+  `;
+}
+
+function screenKiosk() { return `
+<div class="screen" id="scr-kiosk">
+  <div class="kiosk-wrap">
+    <div class="kiosk-clock" id="kiosk-time">00:00:00</div>
+    <div class="kiosk-date" id="kiosk-date"></div>
+    <div class="network-pill net-ok"><div class="ndot ndot-ok"></div>Cybastion Workforce — Cotonou</div>
+    <div class="kiosk-pin-label" id="kiosk-user-label">Enter your 4-digit PIN</div>
+    <div class="kiosk-dots">
+      <div class="pdot" id="pd0"></div><div class="pdot" id="pd1"></div>
+      <div class="pdot" id="pd2"></div><div class="pdot" id="pd3"></div>
+    </div>
+    <div class="numpad">
+      <button class="nk" onclick="kp('1')">1</button><button class="nk" onclick="kp('2')">2</button><button class="nk" onclick="kp('3')">3</button>
+      <button class="nk" onclick="kp('4')">4</button><button class="nk" onclick="kp('5')">5</button><button class="nk" onclick="kp('6')">6</button>
+      <button class="nk" onclick="kp('7')">7</button><button class="nk" onclick="kp('8')">8</button><button class="nk" onclick="kp('9')">9</button>
+      <button class="nk spec" onclick="clearKioskPin()">Clear</button>
+      <button class="nk" onclick="kp('0')">0</button>
+      <button class="nk spec" onclick="kpDel()">⌫</button>
+    </div>
+    <div class="clock-actions">
+      <button class="ci-btn btn-cin" id="kiosk-btn-in" disabled onclick="doClock('in')">Clock In</button>
+      <button class="ci-btn btn-cout" id="kiosk-btn-out" disabled onclick="doClock('out')">Clock Out</button>
+    </div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text3)">📸 Photo captured on every clock-in · Auto-clears after 3 min</div>
+  </div>
+</div>`; }
+
+function screenTimesheet() { return `
+<div class="screen" id="scr-timesheet">
+  <div class="reminder" id="ts-reminder" style="display:none">
+    <div class="reminder-icon">🔔</div>
+    <div class="reminder-text"><b>Weekly approval due!</b> Please review and approve your timesheet by Friday 5:30 PM.</div>
+    <button class="btn btn-warn btn-sm" onclick="approveMyTimesheet()">Approve Now</button>
+  </div>
+  <div class="section-hdr">
+    <div class="section-title">Current Week</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="ts-status"></span>
+      <button class="btn btn-primary btn-sm" id="ts-approve-btn" onclick="approveMyTimesheet()" style="display:none">Approve Timesheet</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportTimesheets(STATE.currentUser?.id)">↓ Excel</button>
+    </div>
+  </div>
+  <div class="week-grid" id="week-grid"></div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="section-hdr" style="margin-bottom:14px"><div class="section-title">Weekly Summary</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div class="card-sm"><div class="stat-val text-accent" id="ts-total-hrs">0h</div><div class="stat-lbl">Total Hours</div></div>
+      <div class="card-sm"><div class="stat-val" id="ts-avg-hrs">0h</div><div class="stat-lbl">Daily Avg</div></div>
+      <div class="card-sm"><div class="stat-val" id="ts-absences">0</div><div class="stat-lbl">Absences</div></div>
+      <div class="card-sm"><div class="stat-val" id="ts-late">0</div><div class="stat-lbl">Late Arrivals</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-hdr" style="margin-bottom:14px"><div class="section-title">Approval History</div></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Period</th><th>Hours</th><th>You</th><th>Manager / Director</th><th>HR</th></tr></thead>
+      <tbody id="ts-history"></tbody>
+    </table></div>
+  </div>
+</div>`; }
+
+function screenLeave() { return `
+<div class="screen" id="scr-leave">
+  <div class="balance-grid">
+    <div class="card-sm"><div class="stat-val text-accent" id="bal-available">0</div><div class="stat-lbl">Available Days</div><div class="prog-wrap" style="margin-top:8px"><div class="prog-bar" id="bal-progress" style="width:0%"></div></div></div>
+    <div class="card-sm"><div class="stat-val" id="bal-used">0</div><div class="stat-lbl">Used This Year</div></div>
+    <div class="card-sm"><div class="stat-val text-warn" id="bal-pending">0</div><div class="stat-lbl">Pending</div></div>
+    <div class="card-sm"><div class="stat-val" id="bal-earned">0</div><div class="stat-lbl">Total Earned</div></div>
+  </div>
+  <div class="leave-layout">
+    <div>
+      <div class="section-hdr">
+        <div class="section-title">My Requests</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportLeaveReport(STATE.currentUser?.id)">↓ Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="openLeaveModal()">+ New Request</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Submitted</th></tr></thead>
+          <tbody id="my-leave-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title" style="margin-bottom:10px">Yearly Breakdown</div>
+      <div class="card" style="margin-bottom:14px"><div id="yearly-breakdown"></div></div>
+      <div class="section-title" style="margin-bottom:10px">Accrual Schedule</div>
+      <div class="card"><div id="accrual-schedule"></div></div>
+    </div>
+  </div>
+</div>`; }
+
+function screenLogTimes() { return `
+<div class="screen" id="scr-logtimes">
+  <div class="stats-row">
+    <div class="card-sm"><div class="stat-val text-accent" id="lt-stat-in">—</div><div class="stat-lbl">Clocked In Now</div></div>
+    <div class="card-sm"><div class="stat-val" id="lt-stat-total">—</div><div class="stat-lbl">Visible Staff</div></div>
+    <div class="card-sm"><div class="stat-val text-warn" id="lt-stat-late">0</div><div class="stat-lbl">Late Today</div></div>
+    <div class="card-sm"><div class="stat-val text-danger" id="lt-stat-absent">0</div><div class="stat-lbl">Absent Today</div></div>
+  </div>
+  <div class="section-hdr" style="margin-bottom:10px">
+    <div class="tabs">
+      <button class="tab active" data-tab="today" onclick="STATE.activeTab['logtimes']='today';setTab('logtimes','today');renderLogTimes('today')">Today</button>
+      <button class="tab" data-tab="week"  onclick="STATE.activeTab['logtimes']='week';setTab('logtimes','week');renderLogTimes('week')">This Week</button>
+      <button class="tab" data-tab="month" onclick="STATE.activeTab['logtimes']='month';setTab('logtimes','month');renderLogTimes('month')">This Month</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="exportClockLog()">↓ Excel</button>
+  </div>
+  <div id="lt-office-filter" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div class="card">
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Employee</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Method</th><th>Status</th></tr></thead>
+      <tbody id="lt-body"></tbody>
+    </table></div>
+  </div>
+</div>`; }
+
+function screenApprovals(role) { return `
+<div class="screen" id="scr-approvals">
+  <div class="section-hdr" style="margin-bottom:16px">
+    <div class="tabs">
+      <button class="tab active" data-tab="timesheets" onclick="setTab('approvals','timesheets');renderApprovals()">
+        Timesheets <span class="tab-badge" id="ap-ts-count"></span>
+      </button>
+      <button class="tab" data-tab="leave" onclick="setTab('approvals','leave');renderApprovals()">
+        Leave Requests <span class="tab-badge" id="ap-lv-count"></span>
+      </button>
+      ${['hr','super_admin','ceo'].includes(role)?`<button class="tab" data-tab="rollup" onclick="setTab('approvals','rollup')">Monthly Rollup</button>`:''}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="exportTimesheets()">↓ Timesheets Excel</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportLeaveReport()">↓ Leave Excel</button>
+    </div>
+  </div>
+  <div class="tab-panel active" data-tab="timesheets">
+    <div class="section-title" style="margin-bottom:12px">Timesheets awaiting your approval</div>
+    <div class="card">
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Employee</th><th>Period</th><th>Hours</th><th>Submitted</th><th>Employee</th><th>Actions</th></tr></thead>
+        <tbody id="ap-ts-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="tab-panel" data-tab="leave">
+    <div class="section-title" style="margin-bottom:12px">Leave requests awaiting your approval</div>
+    <div id="ap-lv-body"></div>
+  </div>
+  ${['hr','super_admin','ceo'].includes(role)?`<div class="tab-panel" data-tab="rollup">
+    <div class="section-title" style="margin-bottom:12px">Monthly rollup</div>
+    <div class="card">
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Month</th><th>Staff</th><th>Total Hours</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="ap-rollup-body">
+          <tr><td colspan="5" class="empty-row">No monthly rollups yet — timesheets will appear here once approved.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>`:''}
+</div>`; }
+
+function screenTeam() { return `
+<div class="screen" id="scr-team">
+  <div class="stats-row">
+    <div class="card-sm"><div class="stat-val" id="team-stat-total">—</div><div class="stat-lbl">Visible Staff</div></div>
+    <div class="card-sm"><div class="stat-val text-accent" id="team-stat-active">—</div><div class="stat-lbl">In Office Now</div></div>
+    <div class="card-sm"><div class="stat-val text-warn" id="team-stat-onleave">—</div><div class="stat-lbl">On Leave</div></div>
+    <div class="card-sm"><div class="stat-val">—</div><div class="stat-lbl">Attendance Rate</div></div>
+  </div>
+  <div id="team-office-filter" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="team-vis-note" style="display:none;margin-bottom:12px"></div>
+  <div class="section-hdr">
+    <div class="section-title">Leave Balances</div>
+    <button class="btn btn-ghost btn-sm" onclick="exportLeaveBalances()">↓ Excel</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Employee</th><th>Title</th><th>Office</th><th>Supervisor</th><th>Earned</th><th>Used</th><th>Available</th><th>Usage</th></tr></thead>
+      <tbody id="team-body"></tbody>
+    </table></div>
+  </div>
+</div>`; }
+
+function screenUsers() { return `
+<div class="screen" id="scr-users">
+  <div class="section-hdr" style="margin-bottom:16px">
+    <div class="section-title">All Staff (${STATE.users.filter(u=>u.active).length} active)</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="exportLeaveBalances()">↓ Excel</button>
+      <button class="btn btn-primary" onclick="openAddUser()">+ Add Employee</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th>Title</th><th>Role</th><th>Office</th><th>Supervisor</th><th>Start Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="users-body"></tbody>
+    </table></div>
+  </div>
+</div>`; }
+
+function screenAudit() { return `
+<div class="screen" id="scr-audit">
+  <div class="section-hdr" style="margin-bottom:16px">
+    <div class="section-title">Audit Log</div>
+    <button class="btn btn-ghost btn-sm" onclick="exportAuditLog()">↓ Excel</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Target</th><th>IP</th></tr></thead>
+      <tbody id="audit-body"></tbody>
+    </table></div>
+  </div>
+</div>`; }
+
+function screenNotifications() { return `
+<div class="screen" id="scr-notifications">
+  <div class="section-hdr" style="margin-bottom:14px">
+    <div class="section-title">Notifications</div>
+    <button class="btn btn-ghost btn-sm" onclick="STATE.notifications.filter(n=>n.userId===STATE.currentUser.id).forEach(n=>n.read=true);renderNotifications()">Mark all read</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="notif-list"></div>
+  </div>
+</div>`; }
+
+function screenProfile() { return `
+<div class="screen" id="scr-profile">
+  <div id="profile-content"></div>
+</div>`; }
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+
+let lpin = '';
+let loginMatchedUser = null;
+
+function onEmailInput(val) {
+  const email = val.trim().toLowerCase();
+  const input = document.getElementById('login-email');
+  const status = document.getElementById('login-email-status');
+  // Try to match against known users
+  const match = STATE.users.find(u => u.email.toLowerCase() === email && u.active);
+  if (email.length === 0) {
+    input.className = 'login-input';
+    status.textContent = '';
+    loginMatchedUser = null;
+    return;
+  }
+  if (match) {
+    input.className = 'login-input valid';
+    status.style.color = 'var(--accent)';
+    status.textContent = '✓  ' + match.name;
+    loginMatchedUser = match;
+  } else if (email.includes('@')) {
+    input.className = 'login-input invalid';
+    status.style.color = 'var(--danger)';
+    status.textContent = 'Email not found. Check your spelling or contact HR.';
+    loginMatchedUser = null;
+  } else {
+    input.className = 'login-input';
+    status.textContent = '';
+    loginMatchedUser = null;
+  }
+}
+
+function focusPIN() {
+  if (loginMatchedUser) document.getElementById('ld0')?.scrollIntoView();
+}
+
+function lp(d) {
+  if (!loginMatchedUser) {
+    document.getElementById('login-error').textContent = 'Please enter your email address first.';
+    return;
+  }
+  if (lpin.length>=4) return;
+  lpin += d;
+  updateLoginDots();
+  if (lpin.length===4) attemptLogin();
+}
+
+function updateLoginDots() {
+  for (let i=0;i<4;i++) {
+    const d=document.getElementById('ld'+i);
+    if (d) d.classList.toggle('filled', i<lpin.length);
+  }
+  const e=document.getElementById('login-error');
+  if (e) e.textContent='';
+}
+
+function attemptLogin() {
+  const user = loginMatchedUser;
+  if (!user || !user.active) {
+    document.getElementById('login-error').textContent = 'Account not found or inactive. Contact HR.';
+    setTimeout(()=>{ lpin=''; updateLoginDots(); }, 1400); return;
+  }
+  // Find live user from STATE (PIN may have been changed this session)
+  const liveUser = STATE.users.find(u => u.id === user.id);
+  if (!liveUser || liveUser.pin !== lpin) {
+    document.getElementById('login-error').textContent = 'Incorrect PIN. Please try again.';
+    setTimeout(()=>{ lpin=''; updateLoginDots(); }, 1400); return;
+  }
+  STATE.currentUser = liveUser;
+  lpin = '';
+  loginMatchedUser = null;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+  if (liveUser.mustChangePIN) {
+    setTimeout(showForcedPINChange, 400);
+  }
+}
+
+function doLogout() {
+  STATE.currentUser=null; STATE.kioskPin=''; lpin=''; loginMatchedUser=null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  const emailEl=document.getElementById('login-email');
+  if(emailEl){ emailEl.value=''; emailEl.className='login-input'; }
+  const statusEl=document.getElementById('login-email-status');
+  if(statusEl) statusEl.textContent='';
+  updateLoginDots();
+}
+
+// ═══════════════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════════════
+
+function initApp() {
+  buildSidebar();
+  buildScreens();
+  updateNotifBadge();
+  showScreen('kiosk');
+  startClock();
+  // update login dropdown to show real users
+  // Email-based login — no dropdown
+}
+
+// Login uses email input — no dropdown to rebuild
+
+function startClock() {
+  function tick(){
+    const now=new Date();
+    const t=now.toLocaleTimeString('en-US',{hour12:false});
+    const d=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const c1=document.getElementById('topbar-clock');
+    const c2=document.getElementById('kiosk-time');
+    const c3=document.getElementById('kiosk-date');
+    if(c1)c1.textContent=t;
+    if(c2)c2.textContent=t;
+    if(c3)c3.textContent=d;
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// Year-end reminder check
+function checkYearEndReminders() {
+  if (new Date().getMonth()===11 && STATE.currentUser) {
+    const bal=leaveBalance(STATE.currentUser.id);
+    if (bal.available>0)
+      addNotif(STATE.currentUser.id,'reminder',
+        `You have ${bal.available} days remaining in ${YEAR}. They carry over fully — plan ahead!`,'leave');
+  }
+}
+
+</script>
+</body>
+</html>
